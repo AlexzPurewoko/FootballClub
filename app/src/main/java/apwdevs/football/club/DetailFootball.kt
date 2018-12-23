@@ -1,8 +1,11 @@
 package apwdevs.football.club
 
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.support.design.resources.TextAppearance
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity;
@@ -19,11 +22,20 @@ import org.jetbrains.anko.*
 import java.io.InputStream
 
 class DetailFootball : AppCompatActivity() {
+    lateinit var bitmap: Bitmap
+    lateinit var dialogShowHelper: DialogShowHelper
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val detailUI = DetailFootballUI().setContentView(this)
-        gets(detailUI)
+        dialogShowHelper = DialogShowHelper(this)
+        dialogShowHelper.buildLoadingLayout()
+        dialogShowHelper.showDialog()
+        Handler(Looper.getMainLooper()).postDelayed({
+            gets(detailUI)
+        }, 100)
+
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
@@ -33,11 +45,34 @@ class DetailFootball : AppCompatActivity() {
         var bytes = ByteArray(stream.available())
         stream.read(bytes)
         stream.close()
-        data.image.let { Picasso.get().load(it).into(detailUI.find<ImageView>(R.id.football_image)) }
-        detailUI.find<TextView>(R.id.football_name).text = data.name
-        detailUI.find<TextView>(R.id.football_description).text = String(bytes)
+
+        data.image.let {
+            bitmap = LoadScalledImages.getScalledCachesFromResources(this, it, dip(100), dip(100), 30f)
+            detailUI.find<ImageView>(R.id.football_image).post {
+                detailUI.find<ImageView>(R.id.football_image).setImageBitmap(bitmap)
+                detailUI.find<TextView>(R.id.football_name).text = data.name
+                detailUI.find<TextView>(R.id.football_description).text = String(bytes)
+                System.gc()
+                dialogShowHelper.stopDialog()
+            }
+        }
+
     }
 
+    override fun onDestroy() {
+        bitmap.recycle()
+        System.gc()
+        super.onDestroy()
+    }
+
+    override fun onBackPressed() {
+        startActivity(intentFor<MainActivity>().clearTask().clearTop())
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressed()
+        return false
+    }
     class DetailFootballUI : AnkoComponent<DetailFootball> {
         override fun createView(ui: AnkoContext<DetailFootball>): View = with(ui) {
             scrollView {

@@ -1,5 +1,6 @@
 package apwdevs.football.club
 
+import android.graphics.Bitmap
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
 
